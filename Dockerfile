@@ -1,5 +1,5 @@
 # Start with a minimal Go image
-FROM golang:1.22-alpine as builder
+FROM golang:1.22-alpine AS builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
