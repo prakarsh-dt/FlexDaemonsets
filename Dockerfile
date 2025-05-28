@@ -12,8 +12,8 @@ RUN go mod download
 # Copy the go source
 COPY cmd/ cmd/
 COPY pkg/ pkg/
-COPY pkg/apis/ pkg/apis/ # Corrected path for apis
-
+COPY pkg/apis/ pkg/apis/ 
+# Corrected path for apis
 # Build
 # CGO_ENABLED=0 to build a statically linked executable
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager cmd/manager/main.go
