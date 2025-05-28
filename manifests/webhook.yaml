@@ -1,0 +1,32 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: flexdaemonsets-mutating-webhook-config
+  labels:
+    app.kubernetes.io/name: flexdaemonsets
+    app.kubernetes.io/component: webhook
+webhooks:
+- name: flexdaemonsets.xai.webhook # Make it fully qualified and descriptive
+  admissionReviewVersions: ["v1"]
+  sideEffects: None
+  failurePolicy: Fail # Or Ignore, depending on desired behavior on error
+  clientConfig:
+    service:
+      name: flexdaemonsets-webhook-svc
+      namespace: flexdaemonsets-system
+      path: "/mutate-v1-pod"
+      port: 443 # Port on the service that maps to targetPort 9443 on the pod
+    # caBundle must be a base64 encoded CA certificate that signed the webhook's serving certificate.
+    # For cert-manager, this is typically injected automatically.
+    # For manual setup, you'll need to generate this and place it here.
+    # Placeholder: "Cg==" is a base64 encoded newline. Replace with actual CA bundle.
+    caBundle: "Cg==" 
+  rules:
+  - operations: ["CREATE"]
+    apiGroups: [""] # core API Group
+    apiVersions: ["v1"]
+    resources: ["pods"]
+    # scope: "Namespaced" # Pods are namespaced
+  # objectSelector: {} # Optional: To narrow down which pods are sent. We filter in webhook logic.
+  # namespaceSelector: {} # Optional: To only intercept pods in specific namespaces.
+  timeoutSeconds: 5 # How long the API server should wait for the webhook to respond

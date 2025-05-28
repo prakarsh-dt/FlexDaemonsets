@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flexdaemonsets-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: flexdaemonsets-webhook-sa
+  namespace: flexdaemonsets-system # Deploy webhook components in their own namespace
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flexdaemonsets-webhook-role
+rules:
+- apiGroups: [""] # core API group
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["flexdaemonsets.xai"]
+  resources: ["flexdaemonsettemplates"]
+  verbs: ["get", "list", "watch"]
+# No specific permissions needed for "pods" here for the webhook to read the incoming pod in AdmissionReview.
+# The ability to patch pods is granted by the MutatingWebhookConfiguration.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: flexdaemonsets-webhook-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flexdaemonsets-webhook-role
+subjects:
+- kind: ServiceAccount
+  name: flexdaemonsets-webhook-sa
+  namespace: flexdaemonsets-system
