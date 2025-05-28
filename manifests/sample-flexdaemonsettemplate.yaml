@@ -1,0 +1,11 @@
+apiVersion: flexdaemonsets.xai/v1alpha1
+kind: FlexDaemonsetTemplate
+metadata:
+  name: default-resource-percentages
+spec:
+  cpuPercentage: 10 # Request 10% of node's allocatable CPU
+  memoryPercentage: 15 # Request 15% of node's allocatable Memory
+  storagePercentage: 5 # Request 5% of node's allocatable ephemeral-storage
+  minCPU: "100m" # Minimum 0.1 CPU
+  minMemory: "128Mi" # Minimum 128 MiB Memory
+  minStorage: "1Gi" # Minimum 1 GiB Ephemeral Storage
