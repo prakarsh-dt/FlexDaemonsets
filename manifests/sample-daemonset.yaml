@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: sample-flex-daemonset
+  namespace: default # Or any namespace where you want to test
+  labels:
+    app: sample-flex-ds
+spec:
+  selector:
+    matchLabels:
+      app: sample-flex-ds
+  template:
+    metadata:
+      labels:
+        app: sample-flex-ds
+      annotations:
+        # This annotation tells our webhook to process pods from this DaemonSet
+        flexdaemonsets.xai/resource-template: "default-resource-percentages" # Assuming 'default-resource-percentages' FlexDaemonsetTemplate exists
+    spec:
+      # nodeSelector: {} # Optional: Target specific nodes
+      # tolerations: [] # Optional: For scheduling on tainted nodes
+      containers:
+      - name: my-sample-container
+        image: nginx:latest # A simple image for demonstration
+        # Resources will be injected by the FlexDaemonsets webhook
+        # You can leave requests/limits empty or provide defaults that will be overwritten
+        resources:
+          requests:
+            cpu: "50m" # These will be overridden if webhook runs
+            memory: "32Mi"
+          limits:
+            cpu: "100m"
+            memory: "64Mi"
+      # Example of a FlexDaemonsetTemplate (ensure this or a similar CR is applied to the cluster)
+      # You already have manifests/sample-flexdaemonsettemplate.yaml
+      # ---
+      # apiVersion: flexdaemonsets.xai/v1alpha1
+      # kind: FlexDaemonsetTemplate
+      # metadata:
+      #   name: default-resource-percentages
+      # spec:
+      #   cpuPercentage: 10
+      #   memoryPercentage: 15
+      #   storagePercentage: 5
+      #   minCPU: "100m"
+      #   minMemory: "128Mi"
+      #   minStorage: "1Gi"

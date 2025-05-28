@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flexdaemonsets-webhook-deployment
+  namespace: flexdaemonsets-system
+  labels:
+    app.kubernetes.io/name: flexdaemonsets
+    app.kubernetes.io/component: webhook-server
+spec:
+  replicas: 2 # Recommended for HA
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: flexdaemonsets-webhook
+      app.kubernetes.io/component: webhook-pod
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: flexdaemonsets-webhook
+        app.kubernetes.io/component: webhook-pod
+    spec:
+      serviceAccountName: flexdaemonsets-webhook-sa
+      containers:
+      - name: webhook-server
+        image: prakarshmodificacióndev/flexdaemonsets-webhook:latest # Placeholder image name, replace with actual
+        imagePullPolicy: IfNotPresent # Or Always, depending on your image update strategy
+        args:
+          - "--cert-dir=/etc/webhook/certs" # Path where certs are mounted
+          - "--metrics-bind-address=:8080" # Optional: if you want to expose metrics
+          - "--health-probe-bind-address=:8081" # For health/readiness probes
+        ports:
+        - name: webhook-https
+          containerPort: 9443 # Port the webhook server listens on (mgr default)
+          protocol: TCP
+        - name: metrics # Optional metrics port
+          containerPort: 8080
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081 # health-probe-bind-address
+            scheme: HTTP # Probes are usually HTTP, even if service is HTTPS
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081 # health-probe-bind-address
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        volumeMounts:
+        - name: webhook-certs
+          mountPath: /etc/webhook/certs # Mount path for certs
+          readOnly: true
+      volumes:
+      - name: webhook-certs
+        secret:
+          secretName: flexdaemonsets-webhook-tls # Name of the Secret containing tls.crt and tls.key
+          # This secret needs to be created (e.g., by cert-manager or manually)
+          # Example for manual creation:
+          # kubectl create secret tls flexdaemonsets-webhook-tls \
+          #   --cert=path/to/tls.crt \
+          #   --key=path/to/tls.key \
+          #   -n flexdaemonsets-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flexdaemonsets-webhook-svc
+  namespace: flexdaemonsets-system
+  labels:
+    app.kubernetes.io/name: flexdaemonsets
+    app.kubernetes.io/component: webhook-service
+spec:
+  selector:
+    app.kubernetes.io/name: flexdaemonsets-webhook # Should match labels on the Pods
+    app.kubernetes.io/component: webhook-pod
+  ports:
+  - name: https
+    port: 443 # Port the K8s API server will call (as defined in MutatingWebhookConfiguration)
+    targetPort: webhook-https # Named port on the pod (9443)
+    protocol: TCP
