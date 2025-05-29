@@ -85,28 +85,44 @@ docker-push: ## Push docker image.
 KUBECTL ?= kubectl
 
 .PHONY: deploy-manifests
-deploy-manifests: ## Apply all manifests in the manifests directory.
-	@echo "Applying manifests from ./manifests directory..."
-	$(KUBECTL) apply -f ./manifests/
-	@echo "Waiting for CRD to be established..."
+deploy-manifests: ## Apply core manifests (CRD, RBAC, Webhook, Deployment).
+	@echo "Applying CRD (manifests/crd.yaml)..."
+	$(KUBECTL) apply -f manifests/crd.yaml
+	@echo "Waiting for CRD flexdaemonsettemplates.flexdaemonsets.xai to be established..."
 	@while ! $(KUBECTL) get crd flexdaemonsettemplates.flexdaemonsets.xai > /dev/null 2>&1; do \
-	  echo "  Waiting for CRD flexdaemonsettemplates.flexdaemonsets.xai..."; \
-	  sleep 1; \
+	  echo "  Waiting for CRD to be available..."; \
+	  sleep 2; \
 	done
 	@echo "CRD flexdaemonsettemplates.flexdaemonsets.xai is established."
-	@echo "Important: Ensure the 'caBundle' in 'manifests/webhook.yaml' is correctly set or injected (e.g., by cert-manager)."
-	@echo "If using self-signed certs (via make generate-certs), update caBundle with content of $(CERT_DIR)/ca.crt (base64 encoded)."
-	@echo "You may also need to restart existing pods if the webhook is re-deployed with changes that affect them."
+	@echo "Applying RBAC (manifests/rbac.yaml)..."
+	$(KUBECTL) apply -f manifests/rbac.yaml
+	@echo "Applying Webhook Configuration (manifests/webhook.yaml)..."
+	$(KUBECTL) apply -f manifests/webhook.yaml
+	@echo "Applying Deployment (manifests/deployment.yaml)..."
+	$(KUBECTL) apply -f manifests/deployment.yaml
+	@echo "Core components deployed."
+	@echo "Important: Ensure the 'caBundle' in 'manifests/webhook.yaml' is correctly set or injected."
+	@echo "If using self-signed certs, update caBundle with content of $(CERT_DIR)/ca.crt (base64 encoded) and re-apply webhook.yaml."
+	@echo "You may also need to restart existing pods if the webhook is re-deployed."
+
+.PHONY: deploy-samples
+deploy-samples: ## Deploy sample FlexDaemonsetTemplate and DaemonSet. Requires CRD and webhook to be running.
+	@echo "Applying sample FlexDaemonsetTemplate (manifests/sample-flexdaemonsettemplate.yaml)..."
+	$(KUBECTL) apply -f manifests/sample-flexdaemonsettemplate.yaml
+	@echo "Applying sample DaemonSet (manifests/sample-daemonset.yaml)..."
+	$(KUBECTL) apply -f manifests/sample-daemonset.yaml
+	@echo "Sample resources deployed."
 
 .PHONY: deploy
 deploy: manager docker-build deploy-manifests ## Build, Docker build, and deploy all manifests.
-	@echo "Deployment initiated. Use 'make docker-push' if you need to push the image to a registry."
+	@echo "Deployment of core components initiated. Use 'make docker-push' if you need to push the image to a registry."
 	@echo "To complete deployment if not using cert-manager for caBundle injection:"
 	@echo "1. Ensure your Docker image $(IMG) is available to your cluster (e.g., pushed to a registry)."
 	@echo "2. Create the TLS secret 'flexdaemonsets-webhook-tls' in namespace '$(WEBHOOK_NAMESPACE)' using your generated certs (see 'make generate-certs' output)."
 	@echo "3. Base64 encode $(CERT_DIR)/ca.crt and update 'caBundle' in 'manifests/webhook.yaml'."
 	@echo "4. Re-apply 'manifests/webhook.yaml': $(KUBECTL) apply -f manifests/webhook.yaml"
 	@echo "5. Update the image in 'manifests/deployment.yaml' to $(IMG) if it's not already set, then $(KUBECTL) apply -f manifests/deployment.yaml"
+	@echo "After core components are ready, deploy sample resources using: make deploy-samples"
 
 
 .PHONY: undeploy-manifests

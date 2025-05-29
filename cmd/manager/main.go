@@ -10,6 +10,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook" // Ensure webhook is imported if directly used, though often implicitly handled by manager
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission" // Added for admission.NewDecoder
 
 	flexdaemonsetsv1alpha1 "github.com/prakarsh-dt/FlexDaemonsets/pkg/apis/flexdaemonsets/v1alpha1"
 	flexdaemonsetwebhook "github.com/prakarsh-dt/FlexDaemonsets/pkg/webhook" // Import the webhook package
@@ -61,14 +62,14 @@ func main() {
 	// openssl x509 -req -days 365 -in tls.csr -signkey tls.key -out tls.crt
 	// Then place tls.crt and tls.key into the certDir.
 	// In a cluster, cert-manager is a common way to provision and manage TLS certificates for webhooks.
+	// Removing MetricsBindAddress temporarily to try and move past "unknown field" error.
+	// Port & CertDir are not direct fields; webhook server uses defaults.
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443, // Default webhook server port
+		// MetricsBindAddress:     metricsAddr, // Removing again due to "unknown field" error
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "flexdaemonsets.xai",
-		CertDir:                certDir, // Pass the certDir to the manager
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -77,20 +78,21 @@ func main() {
 
 	// Setup webhooks
 	setupLog.Info("Setting up webhook server and registering webhooks")
+	
 	// Get the webhook server from the manager.
-	// The server is already configured by the manager options (Port, CertDir).
 	hookServer := mgr.GetWebhookServer()
 
-	// Register the PodMutator webhook. The path here is important and should match
-	// the MutatingWebhookConfiguration in your deployment manifests.
+	// Register the PodMutator webhook.
+	// PodMutator.Decoder is *admission.Decoder (pointer to struct)
+	decoder := admission.NewDecoder(mgr.GetScheme())
 	hookServer.Register(
 		"/mutate-v1-pod",
-		&webhook.Admission{Handler: &flexdaemonsetwebhook.PodMutator{Client: mgr.GetClient()}},
+		&webhook.Admission{Handler: &flexdaemonsetwebhook.PodMutator{Client: mgr.GetClient(), Decoder: decoder}},
 	)
 
 	// +kubebuilder:scaffold:builder
 
-	// Add health and readiness checks. The webhook server's StartedChecker can be used.
+	// Add health and readiness checks using StartedChecker
 	if err := mgr.AddHealthzCheck("healthz", hookServer.StartedChecker()); err != nil {
 		setupLog.Error(err, "unable to set up health check")
 		os.Exit(1)
