@@ -1,5 +1,5 @@
 # Start with a minimal Go image
-FROM golang:1.22-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -12,8 +12,7 @@ RUN go mod download
 # Copy the go source
 COPY cmd/ cmd/
 COPY pkg/ pkg/
-COPY pkg/apis/ pkg/apis/ 
-# Corrected path for apis
+# Corrected path for apis (pkg/apis/ is covered by COPY pkg/ pkg/)
 # Build
 # CGO_ENABLED=0 to build a statically linked executable
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager cmd/manager/main.go

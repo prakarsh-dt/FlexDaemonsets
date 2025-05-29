@@ -21,7 +21,8 @@ func CalculatePodResources(
 ) (corev1.ResourceList, error) {
 
 	calculatedResources := corev1.ResourceList{}
-	var err error
+	// var err error // This was unused. If it was intended for future use, it should be uncommented.
+	// For now, commenting out to fix build error. If any function call here can return an error, it should be handled.
 
 	// Calculate CPU
 	cpuAllocatable, ok := nodeAllocatable[corev1.ResourceCPU]
@@ -165,6 +166,6 @@ func CalculatePodResources(
 		}
 	}
 	
-	log.Info("Calculated pod resources", "resources", calculatedResources.String())
+	log.Info("Calculated pod resources", "resources", fmt.Sprintf("%v", calculatedResources))
 	return calculatedResources, nil
 }

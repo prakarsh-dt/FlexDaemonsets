@@ -25,13 +25,18 @@ var log = ctrl.Log.WithName("webhook").WithName("PodMutator")
 // PodMutator mutates Pods
 type PodMutator struct {
 	Client  client.Client
-	Decoder *admission.Decoder
+	Decoder admission.Decoder // Correct interface type for v0.18.0
 }
 
 // Handle is the main entry point for the mutating webhook.
 func (m *PodMutator) Handle(ctx context.Context, req admission.Request) admission.Response {
 	pod := &corev1.Pod{}
-	err := m.Decoder.Decode(req, pod)
+	// It's important that m.Decoder is not nil. It's initialized in main.go.
+	if m.Decoder == nil {
+		log.Error(fmt.Errorf("decoder not initialized"), "Decoder is nil")
+		return admission.Errored(http.StatusInternalServerError, fmt.Errorf("decoder not initialized"))
+	}
+	err := m.Decoder.Decode(req, pod) // Ensure call is on the interface value
 	if err != nil {
 		log.Error(err, "Failed to decode pod from admission request")
 		return admission.Errored(http.StatusBadRequest, err)
@@ -120,7 +125,7 @@ func (m *PodMutator) Handle(ctx context.Context, req admission.Request) admissio
 		return admission.Allowed("Calculated resources are empty, no changes.")
 	}
 	
-	requestLogger.Info("Successfully calculated pod resources.", "calculatedResources", calculatedPodResources.String())
+	requestLogger.Info("Successfully calculated pod resources.", "calculatedResources", fmt.Sprintf("%v", calculatedPodResources))
 
 	// 4. Create JSON patch
 	mutatedPod := pod.DeepCopy() // It's crucial to copy the pod object before mutating it
@@ -140,7 +145,7 @@ func (m *PodMutator) Handle(ctx context.Context, req admission.Request) admissio
 			mutatedPod.Spec.Containers[i].Resources.Requests[resourceName] = quantity
 			mutatedPod.Spec.Containers[i].Resources.Limits[resourceName] = quantity // Setting limits equal to requests
 		}
-		requestLogger.Info("Applied resources to container.", "containerName", mutatedPod.Spec.Containers[i].Name, "resources", calculatedPodResources.String())
+		requestLogger.Info("Applied resources to container.", "containerName", mutatedPod.Spec.Containers[i].Name, "resources", fmt.Sprintf("%v", calculatedPodResources))
 	}
 	
 	// Also apply to init containers, if any
@@ -156,7 +161,7 @@ func (m *PodMutator) Handle(ctx context.Context, req admission.Request) admissio
 			mutatedPod.Spec.InitContainers[i].Resources.Requests[resourceName] = quantity
 			mutatedPod.Spec.InitContainers[i].Resources.Limits[resourceName] = quantity // Setting limits equal to requests
 		}
-		requestLogger.Info("Applied resources to init container.", "containerName", mutatedPod.Spec.InitContainers[i].Name, "resources", calculatedPodResources.String())
+		requestLogger.Info("Applied resources to init container.", "containerName", mutatedPod.Spec.InitContainers[i].Name, "resources", fmt.Sprintf("%v", calculatedPodResources))
 	}
 
 
@@ -170,11 +175,9 @@ func (m *PodMutator) Handle(ctx context.Context, req admission.Request) admissio
 	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledPod)
 }
 
-// InjectDecoder injects the decoder into the PodMutator.
-func (m *PodMutator) InjectDecoder(d *admission.Decoder) error {
-	m.Decoder = d
-	return nil
-}
+// Decoder will be injected by the manager.
+// Ensure this struct implements admission.DecoderAware if you want the manager to inject it.
+// For controller-runtime v0.17+, explicit injection via a constructor or direct setting in main.go is common.
 
 var _ admission.Handler = &PodMutator{}
-var _ admission.DecoderInjector = &PodMutator{}
+// var _ admission.DecoderInjector = &PodMutator{} // DecoderInjector was removed in controller-runtime v0.17+
