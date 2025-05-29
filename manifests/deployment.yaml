@@ -21,7 +21,7 @@ spec:
       serviceAccountName: flexdaemonsets-webhook-sa
       containers:
       - name: webhook-server
-        image: prakarshmodificationusg/flexdaemonsets-webhook:latest # Placeholder image name, replace with actual
+        image: quay.io/devtron/flex-ds:b36e4a9e-1048-33375
         imagePullPolicy: IfNotPresent # Or Always, depending on your image update strategy
         args:
           - "--cert-dir=/etc/webhook/certs" # Path where certs are mounted
