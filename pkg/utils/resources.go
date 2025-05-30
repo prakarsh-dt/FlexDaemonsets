@@ -47,7 +47,7 @@ func CalculatePodResources(
 		// Calculate CPU based on percentage
 		cpuPercentageValue := float64(cpuAllocatable.MilliValue()) * (float64(templateSpec.CPUPercentage) / 100.0)
 		calculatedCPU := resource.NewMilliQuantity(int64(cpuPercentageValue), resource.DecimalSI)
-		
+
 		minCPUQuantitySet := false
 		var minCPUQuantity resource.Quantity
 		if templateSpec.MinCPU != "" {
@@ -65,12 +65,12 @@ func CalculatePodResources(
 			log.Info("Calculated CPU is less than MinCPU, using MinCPU", "calculatedCPU", calculatedCPU.String(), "minCPU", minCPUQuantity.String())
 			calculatedCPU = &minCPUQuantity
 		}
-		
+
 		// Only add CPU to resources if it's greater than 0.
 		if calculatedCPU.MilliValue() > 0 {
-		    calculatedResources[corev1.ResourceCPU] = *calculatedCPU
+			calculatedResources[corev1.ResourceCPU] = *calculatedCPU
 		} else {
-		    log.Info("Calculated CPU (after considering MinCPU if any) is zero or less. Requesting no CPU.", "finalCalculatedCPU", calculatedCPU.String())
+			log.Info("Calculated CPU (after considering MinCPU if any) is zero or less. Requesting no CPU.", "finalCalculatedCPU", calculatedCPU.String())
 		}
 	}
 
@@ -114,7 +114,7 @@ func CalculatePodResources(
 		}
 
 		if calculatedMemory.Value() > 0 {
-		    calculatedResources[corev1.ResourceMemory] = *calculatedMemory
+			calculatedResources[corev1.ResourceMemory] = *calculatedMemory
 		} else {
 			log.Info("Calculated Memory (after considering MinMemory if any) is zero or less. Requesting no Memory.", "finalCalculatedMemory", calculatedMemory.String())
 		}
@@ -158,14 +158,14 @@ func CalculatePodResources(
 			log.Info("Calculated Storage is less than MinStorage, using MinStorage", "calculatedStorage", calculatedStorage.String(), "minStorage", minStorageQuantity.String())
 			calculatedStorage = &minStorageQuantity
 		}
-		
+
 		if calculatedStorage.Value() > 0 {
-		    calculatedResources[corev1.ResourceEphemeralStorage] = *calculatedStorage
+			calculatedResources[corev1.ResourceEphemeralStorage] = *calculatedStorage
 		} else {
 			log.Info("Calculated Storage (after considering MinStorage if any) is zero or less. Requesting no Storage.", "finalCalculatedStorage", calculatedStorage.String())
 		}
 	}
-	
+
 	log.Info("Calculated pod resources", "resources", fmt.Sprintf("%v", calculatedResources))
 	return calculatedResources, nil
 }

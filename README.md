@@ -7,13 +7,15 @@ FlexDaemonsets enhances resource allocation for DaemonSets in heterogeneous Kube
 The solution uses:
 - A **Custom Resource Definition (CRD)** named `FlexDaemonsetTemplate` to define percentage-based resource allocation templates.
 - An **annotation** on DaemonSets (`flexdaemonsets.xai/resource-template: <template-name>`) to opt-in for this feature.
-- A **mutating webhook** that intercepts pod creation for annotated DaemonSets, calculates the appropriate resources based on the node's capacity and the template, and injects these values into the pod specification.
+- A **mutating webhook** that intercepts pod creation. If the pod is owned by an annotated DaemonSet, the webhook adds an annotation to the pod, indicating the `FlexDaemonsetTemplate` to be applied.
+- A **FlexDaemonset Pod Controller** that watches for these annotated pods. Once a pod is scheduled (i.e., `spec.nodeName` is set), the controller calculates resources based on the node's capacity and the specified template, then updates the pod's resource requests and limits.
 
 ## Project Structure
 
-- `cmd/manager/main.go`: Main entry point for the webhook server.
+- `cmd/manager/main.go`: Main entry point for the webhook server and controller manager.
 - `pkg/apis/`: Contains the API type definitions for `FlexDaemonsetTemplate` (e.g., `pkg/apis/flexdaemonsets/v1alpha1/types.go`).
-- `pkg/webhook/`: Contains the core mutating webhook logic.
+- `pkg/controller/`: Contains the Pod controller logic for applying resources post-scheduling.
+- `pkg/webhook/`: Contains the mutating webhook logic (annotates pods for the controller).
 - `pkg/utils/`: Utility functions, including resource calculation.
 - `manifests/`: Kubernetes manifests for CRD, RBAC, webhook configuration, deployment, and samples.
 - `Dockerfile`: For building the webhook server container image.
@@ -141,7 +143,7 @@ The following steps guide you through deploying the FlexDaemonsets webhook to yo
         flexdaemonsets.xai/resource-template: "default-resource-percentages" # Points to the FlexDaemonsetTemplate
     # ... rest of DaemonSet spec
     ```
-    When new pods for this DaemonSet are created, the webhook will mutate them to include resource requests and limits based on the "default-resource-percentages" template and the specific node they are scheduled on.
+    When new pods for this DaemonSet are created, the webhook will first annotate these pods. Shortly after a pod is scheduled to a node, the FlexDaemonset Pod Controller will detect it, calculate resources based on the "default-resource-percentages" template and that specific node's capacity, and then update the pod's resource requests and limits.
 
 ## Cleanup
 

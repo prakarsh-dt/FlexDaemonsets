@@ -20,6 +20,12 @@ rules:
 - apiGroups: ["flexdaemonsets.xai"]
   resources: ["flexdaemonsettemplates"]
   verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["daemonsets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""] # core API group
+  resources: ["pods"]
+  verbs: ["get", "list", "watch", "update", "patch"]
 # No specific permissions needed for "pods" here for the webhook to read the incoming pod in AdmissionReview.
 # The ability to patch pods is granted by the MutatingWebhookConfiguration.
 ---
