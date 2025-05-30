@@ -9,25 +9,8 @@ metadata:
   name: flexdaemonsets-webhook-sa
   namespace: flexdaemonsets-system # Deploy webhook components in their own namespace
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: flexdaemonsets-webhook-role
-rules:
-- apiGroups: [""] # core API group
-  resources: ["nodes"]
-  verbs: ["get", "list", "watch"]
-- apiGroups: ["flexdaemonsets.xai"]
-  resources: ["flexdaemonsettemplates"]
-  verbs: ["get", "list", "watch"]
-- apiGroups: ["apps"]
-  resources: ["daemonsets"]
-  verbs: ["get", "list", "watch"]
-- apiGroups: [""] # core API group
-  resources: ["pods"]
-  verbs: ["get", "list", "watch", "update", "patch"]
-# No specific permissions needed for "pods" here for the webhook to read the incoming pod in AdmissionReview.
-# The ability to patch pods is granted by the MutatingWebhookConfiguration.
+# ClusterRole "flexdaemonsets-webhook-role" is removed as its permissions are a subset of "manager-role"
+# and the ClusterRoleBinding "flexdaemonsets-webhook-binding" will now point to "manager-role".
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -36,7 +19,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: flexdaemonsets-webhook-role
+  name: manager-role # Changed from flexdaemonsets-webhook-role
 subjects:
 - kind: ServiceAccount
   name: flexdaemonsets-webhook-sa

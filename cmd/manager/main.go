@@ -92,7 +92,25 @@ func main() {
 
 	// +kubebuilder:scaffold:builder
 
-	setupLog.Info("Setting up Pod controller")
+	setupLog.Info("Setting up NodeCoverageReconciler")
+	if err = (&flexcontroller.NodeCoverageReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "NodeCoverageReconciler")
+		os.Exit(1)
+	}
+
+	setupLog.Info("Setting up FlexDaemonSetNodePodReconciler")
+	if err = (&flexcontroller.FlexDaemonSetNodePodReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "FlexDaemonSetNodePodReconciler")
+		os.Exit(1)
+	}
+
+	setupLog.Info("Setting up Pod controller") // Existing PodReconciler
 	if err = (&flexcontroller.PodReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
