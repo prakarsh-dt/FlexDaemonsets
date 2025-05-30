@@ -24,12 +24,6 @@ import (
 	"github.com/prakarsh-dt/FlexDaemonsets/pkg/utils"
 )
 
-const (
-	// FlexDaemonsetTemplateAnnotation is the annotation key used on DaemonSets
-	// to specify the name of the FlexDaemonsetTemplate CR.
-	FlexDaemonsetTemplateAnnotation = "flexdaemonsets.xai/resource-template"
-)
-
 // NodeCoverageReconciler reconciles a Node object by ensuring FlexDaemonSetNodePods
 // are created for DaemonSets that should have a pod on that node but don't.
 // It primarily watches DaemonSet and Node events.
@@ -70,9 +64,9 @@ func (r *NodeCoverageReconciler) Reconcile(ctx context.Context, req ctrl.Request
 func (r *NodeCoverageReconciler) reconcileDaemonSetCoverage(ctx context.Context, ds *appsv1.DaemonSet) (ctrl.Result, error) {
 	logger := log.FromContext(ctx).WithValues("daemonset", client.ObjectKeyFromObject(ds).String())
 
-	templateName, ok := ds.Annotations[FlexDaemonsetTemplateAnnotation]
+	templateName, ok := ds.Annotations[utils.FlexDaemonsetTemplateAnnotation]
 	if !ok {
-		logger.Info("DaemonSet does not have the required annotation, skipping", "annotation", FlexDaemonsetTemplateAnnotation)
+		logger.Info("DaemonSet does not have the required annotation, skipping", "annotation", utils.FlexDaemonsetTemplateAnnotation)
 		// If annotation is removed, existing FDNPs should ideally be cleaned up by their own controller or a cleanup mechanism.
 		// This controller focuses on ensuring FDNPs exist when they *should*.
 		return ctrl.Result{}, nil
@@ -249,7 +243,7 @@ func (r *NodeCoverageReconciler) findDaemonSetsForNode(ctx context.Context, node
 
 	requests := make([]reconcile.Request, 0)
 	for _, ds := range daemonSetList.Items {
-		if _, ok := ds.Annotations[FlexDaemonsetTemplateAnnotation]; ok {
+		if _, ok := ds.Annotations[utils.FlexDaemonsetTemplateAnnotation]; ok {
 			requests = append(requests, reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      ds.Name,
@@ -310,7 +304,7 @@ func (r *NodeCoverageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// Using AnnotationChangedPredicate for the specific annotation.
 	// Also react to spec changes that change metadata.generation (which we use for ObservedDaemonSetTemplateGeneration)
 	dsPredicate := predicate.Or(
-		predicate.AnnotationChangedPredicate{Annotations: []string{FlexDaemonsetTemplateAnnotation}},
+		predicate.AnnotationChangedPredicate{}, // Changed
 		predicate.GenerationChangedPredicate{}, // Reacts if metadata.generation changes (e.g. spec updates)
 	)
 
