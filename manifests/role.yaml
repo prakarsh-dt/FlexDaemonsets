@@ -1,0 +1,66 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+  - watch // May not be strictly needed if all info is in FDNP
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+  - watch // Needed to verify DS ownership if desired
+- apiGroups:
+  - flexdaemonsets.xai
+  resources:
+  - flexdaemonsetnodepods
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - flexdaemonsets.xai
+  resources:
+  - flexdaemonsetnodepods/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - flexdaemonsets.xai
+  resources:
+  - flexdaemonsettemplates
+  verbs:
+  - get
+  - list
+  - watch
