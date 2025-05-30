@@ -9,10 +9,11 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp" // For GCP auth
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"sigs.k8s.io/controller-runtime/pkg/webhook" // Ensure webhook is imported if directly used, though often implicitly handled by manager
+	"sigs.k8s.io/controller-runtime/pkg/webhook"           // Ensure webhook is imported if directly used, though often implicitly handled by manager
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission" // Added for admission.NewDecoder
 
 	flexdaemonsetsv1alpha1 "github.com/prakarsh-dt/FlexDaemonsets/pkg/apis/flexdaemonsets/v1alpha1"
+	flexcontroller "github.com/prakarsh-dt/FlexDaemonsets/pkg/controller"    // Import the new controller package
 	flexdaemonsetwebhook "github.com/prakarsh-dt/FlexDaemonsets/pkg/webhook" // Import the webhook package
 	// +kubebuilder:scaffold:imports
 )
@@ -65,7 +66,7 @@ func main() {
 	// Removing MetricsBindAddress temporarily to try and move past "unknown field" error.
 	// Port & CertDir are not direct fields; webhook server uses defaults.
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
+		Scheme: scheme,
 		// MetricsBindAddress:     metricsAddr, // Removing again due to "unknown field" error
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
@@ -78,7 +79,6 @@ func main() {
 
 	// Setup webhooks
 	setupLog.Info("Setting up webhook server and registering webhooks")
-	
 	// Get the webhook server from the manager.
 	hookServer := mgr.GetWebhookServer()
 
@@ -91,6 +91,15 @@ func main() {
 	)
 
 	// +kubebuilder:scaffold:builder
+
+	setupLog.Info("Setting up Pod controller")
+	if err = (&flexcontroller.PodReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Pod")
+		os.Exit(1)
+	}
 
 	// Add health and readiness checks using StartedChecker
 	if err := mgr.AddHealthzCheck("healthz", hookServer.StartedChecker()); err != nil {
