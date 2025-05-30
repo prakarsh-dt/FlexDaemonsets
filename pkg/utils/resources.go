@@ -165,7 +165,6 @@ func CalculatePodResources(
 			log.Info("Calculated Storage (after considering MinStorage if any) is zero or less. Requesting no Storage.", "finalCalculatedStorage", calculatedStorage.String())
 		}
 	}
-
 	log.Info("Calculated pod resources", "resources", fmt.Sprintf("%v", calculatedResources))
 	return calculatedResources, nil
 }

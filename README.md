@@ -143,6 +143,7 @@ The following steps guide you through deploying the FlexDaemonsets webhook to yo
         flexdaemonsets.xai/resource-template: "default-resource-percentages" # Points to the FlexDaemonsetTemplate
     # ... rest of DaemonSet spec
     ```
+    
     When new pods for this DaemonSet are created, the webhook will first annotate these pods. Shortly after a pod is scheduled to a node, the FlexDaemonset Pod Controller will detect it, calculate resources based on the "default-resource-percentages" template and that specific node's capacity, and then update the pod's resource requests and limits.
 
 ## Cleanup

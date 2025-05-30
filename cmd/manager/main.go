@@ -79,7 +79,6 @@ func main() {
 
 	// Setup webhooks
 	setupLog.Info("Setting up webhook server and registering webhooks")
-
 	// Get the webhook server from the manager.
 	hookServer := mgr.GetWebhookServer()
 
