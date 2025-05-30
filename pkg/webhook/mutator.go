@@ -14,12 +14,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	// flexdaemonsetsv1alpha1 "github.com/prakarsh-dt/FlexDaemonsets/pkg/apis/flexdaemonsets/v1alpha1" // Removed
-	// utils "github.com/prakarsh-dt/FlexDaemonsets/pkg/utils" // Removed
+	"github.com/prakarsh-dt/FlexDaemonsets/pkg/utils"
 )
 
 const (
-	FlexDaemonsetTemplateAnnotation = "flexdaemonsets.xai/resource-template" // Annotation on DaemonSet
-	PodApplyTemplateAnnotation      = "flexdaemonsets.xai/apply-template"    // Annotation to be placed on Pod
+	PodApplyTemplateAnnotation = "flexdaemonsets.xai/apply-template" // Annotation to be placed on Pod
 )
 
 var log = ctrl.Log.WithName("webhook").WithName("PodMutator")
@@ -81,9 +80,9 @@ func (m *PodMutator) Handle(ctx context.Context, req admission.Request) admissio
 	requestLogger.Info("Successfully fetched owning DaemonSet", "daemonSetName", daemonSetName)
 
 	// Read annotation from DaemonSet
-	templateNameFromDSAnnotation, ok := daemonSet.Annotations[FlexDaemonsetTemplateAnnotation]
+	templateNameFromDSAnnotation, ok := daemonSet.Annotations[utils.FlexDaemonsetTemplateAnnotation]
 	if !ok || templateNameFromDSAnnotation == "" {
-		requestLogger.Info("Owning DaemonSet does not have the required annotation or annotation is empty.", "daemonSetName", daemonSetName, "annotation", FlexDaemonsetTemplateAnnotation)
+		requestLogger.Info("Owning DaemonSet does not have the required annotation or annotation is empty.", "daemonSetName", daemonSetName, "annotation", utils.FlexDaemonsetTemplateAnnotation)
 		return admission.Allowed("Owning DaemonSet is not annotated for flex resource allocation.")
 	}
 	requestLogger.Info("Found template annotation on DaemonSet", "templateName", templateNameFromDSAnnotation)

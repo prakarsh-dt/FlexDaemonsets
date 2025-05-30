@@ -21,8 +21,7 @@ import (
 )
 
 const (
-	PodApplyTemplateAnnotation      = "flexdaemonsets.xai/apply-template"    // From webhook
-	FlexDaemonsetTemplateAnnotation = "flexdaemonsets.xai/resource-template" // On DaemonSet
+	PodApplyTemplateAnnotation = "flexdaemonsets.xai/apply-template" // From webhook
 )
 
 // PodReconciler reconciles a Pod object
